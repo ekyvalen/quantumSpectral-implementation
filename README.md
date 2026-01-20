@@ -24,17 +24,17 @@ The implementation uses **Qiskit**.
 
 ### Problem definition
 
-We consider on the domain $\Omega = (0, L) \subset ℝ^1$ the Poisson equation
+We consider on the domain $\Omega = (0, 1) \subset ℝ^1$ the Poisson equation
 
 $$
 -\frac{\mathrm{d}^2 u(x)}{\mathrm{d}x^2} = f(x), \quad \forall x \in \Omega,
 $$
 
-with the homogeneous Dirichlet boundary conditions $u(0) = u(L) = 0$.
+with the homogeneous Dirichlet boundary conditions $u(0) = u(1) = 0$.
 
 ### Classical solution through antisymmetric reflection and DFT
 
-We extend the physical fields, $f(x)$ and $u(x)$, to the domain $\Omega_{\mathrm{E}} = (0, 2L)$. For the force $f(x)$:
+We extend the physical fields, $f(x)$ and $u(x)$, to the domain $\Omega_{\mathrm{E}} = (0, 2)$. For the force $f(x)$:
 
 $$
 f_{\mathrm{E}}(x) =
@@ -69,8 +69,7 @@ $$
 We can obtain the solution equation using
 
 $$
-𝐮 =
-𝐑^{\top}𝐅_N^{\dagger}𝐑 ~ 𝐃^{-1} ~ 𝐑^{\top} 𝐅_N 𝐑 ~ 𝐟,
+𝐮 = 𝐑^{\top}𝐅_N^{\dagger}𝐑 ~ 𝐃^{-1} ~ 𝐑^{\top} 𝐅_N 𝐑 ~ 𝐟,
 $$
 
 where
@@ -83,8 +82,40 @@ $$
 ---
 ## Quantum implementation
 
+We choose first the discretisation for our 1D Poisson-Dirchlet problem over the domain $\Omega = (0, 1)$. In this case we choose $n_{pts} = 2^5$ corresponding to $n_q = 5$ qubits. 
 
+        n_state_qubits     = 5                          # physical domain \Omega
+        n_state_qubits_ext = n_state_qubits + 1         # extended domain \Omega_E
 
+        n_pts              = 2**n_state_qubits
+        n_pts_ext          = 2**n_state_qubits_ext
+
+We then discretise the force vector 
+
+        # discretize the domain interval (0, 1)
+        l     = 1.                                      # domain
+        h     = l/n_pts 
+        x     = np.linspace(0, l-h, n_pts)
+
+        # forcing vector as input state
+        f_i    = forcing(x, 1)
+        f_i[0] = 0.                                    # make sure zero at the first element 
+        norm_f = np.linalg.norm(f_i)
+        f      = f_i/norm_f                            # normalised state
+
+Now we can setup our quantum circuit, starting with the qubit registers
+
+        qcs = QuantumRegister(n_state_qubits, 'x')     # physical space 
+        qce = QuantumRegister(1, 'e')                  # extension for antisymmetric reflection
+        qca = QuantumRegister(n_ancillas, 'a')         # ancillary qubits
+        qc  = QuantumCircuit(qcs, qce, qca)
+
+The input state, which is the (normalised) discretised force vector, can be prepared using a built-in Qiskit initialisation
+        
+        qc.initialize(f, qcs)
+
+To obtain the final state $𝐮$ we require implementation of unitary gates for reflection 
+        
 ---
 
 ## Citation
@@ -92,8 +123,8 @@ $$
 If you use this repository in academic work, please cite:
 
     @article{Febrianto2025QSM,
-      title   = {Quantum Spectral Method (QSM) for non-periodic boundary value problems},
-      author  = {Febrianto, E. and others},
+      title   = {A Quantum Spectral Method for non-periodic boundary value problems},
+      author  = {Eky Febrianto, Yiren Wang, Burigede Liu, Michael Ortiz, Fehmi Cirak},
       journal = {arXiv preprint arXiv:2511.11494},
       year    = {2025}
     }
