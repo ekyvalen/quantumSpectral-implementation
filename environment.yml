@@ -1,0 +1,34 @@
+name: myqiskit
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+
+  # Core dev / notebooks
+  - ipykernel
+  - jupyterlab
+  - ipython
+
+  # Common utilities
+  - numpy
+  - scipy
+  - matplotlib
+  - pandas
+
+  # Qiskit ecosystem 
+  - qiskit>=1.0
+
+  # Visualization / graph tools
+  - graphviz
+  - python-graphviz
+
+  # Optional: testing / formatting (good for GitHub)
+  - pytest
+  - black
+  - ruff
+
+  # Pip packages
+  - pip:
+      []
