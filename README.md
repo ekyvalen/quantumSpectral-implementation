@@ -39,13 +39,13 @@ We extend the physical fields, $f(x)$ and $u(x)$, to the domain $\Omega_{\mathrm
 $$
 f_{\mathrm{E}}(x) =
 \begin{cases}
-0  & \text{if } x = 0,\, L,\, 2L, \\
-f(x) & \text{if } x \in (0, L), \\
--f(2L-x) & \text{if } x \in (L, 2L).
+0  & \text{if } x = 0,\, 1,\, 21, \\
+f(x) & \text{if } x \in (0, 1), \\
+-f(2-x) & \text{if } x \in (1, 2).
 \end{cases}
 $$
 
-The source field values at are collocaated at the grid points $x_k = k \frac{2L}{N}, \quad k = 0, 1, \dotsc, N-1$, and are collected into the antisymmetrically extended vector
+The source field values at are collocaated at the grid points $x_k = \frac{2 k}{N}, \quad k = 0, 1, \dotsc, N-1$, and are collected into the antisymmetrically extended vector
 
 $$
 𝐟_{\mathrm{E}} =
@@ -54,13 +54,13 @@ $$
 \end{pmatrix}^{\top}.
 $$
 
-We introduce the antisymmetric extension matrix $\mathbf{R} \in \mathbb{R}^{N \times N/2}$ such that
+We introduce the antisymmetric extension matrix $𝐑 \in ℝ^{N \times N/2}$ such that
 
 $$
 𝐟_{\mathrm{E}} = 𝐑~ 𝐟,
 $$
 
-where $𝐟 \in ℝ^{N/2}$ contains grid point values only associated with the physical domain. The DFT of the source vector $f_{\mathrm{E}}$ is defined as
+where $𝐟 \in ℝ^{N/2}$ contains grid point values only associated with the physical domain. The DFT of the source vector $𝐟_{\mathrm{E}}$ is defined as
 
 $$
 \hat{𝐟}_{\mathrm{E}} = 𝐅_N ~𝐟_{\mathrm{E}}.
@@ -86,22 +86,21 @@ We choose first the discretisation for our 1D Poisson-Dirchlet problem over the 
 
         n_state_qubits     = 5                          # physical domain \Omega
         n_state_qubits_ext = n_state_qubits + 1         # extended domain \Omega_E
-
+    
         n_pts              = 2**n_state_qubits
         n_pts_ext          = 2**n_state_qubits_ext
 
 We then discretise the force vector 
 
         # discretize the domain interval (0, 1)
-        l     = 1.                                      # domain
-        h     = l/n_pts 
-        x     = np.linspace(0, l-h, n_pts)
+        h     = 1/n_pts 
+        x     = np.linspace(0, 1-h, n_pts)
 
         # forcing vector as input state
-        f_i    = forcing(x, 1)
+        f_i    = forcing(x, 1)                         # evaluate forcing function at collocation points
         f_i[0] = 0.                                    # make sure zero at the first element 
-        norm_f = np.linalg.norm(f_i)
-        f      = f_i/norm_f                            # normalised state
+        norm_f = np.linalg.norm(f_i)                   # for normalisation
+        f      = f_i/norm_f                            # normalised input state
 
 Now we can setup our quantum circuit, starting with the qubit registers
 
@@ -110,12 +109,47 @@ Now we can setup our quantum circuit, starting with the qubit registers
         qca = QuantumRegister(n_ancillas, 'a')         # ancillary qubits
         qc  = QuantumCircuit(qcs, qce, qca)
 
-The input state, which is the (normalised) discretised force vector, can be prepared using a built-in Qiskit initialisation
+The input state, which is the (normalised) discretised force vector 𝐟, can be prepared using a built-in Qiskit initialisation
         
         qc.initialize(f, qcs)
 
-To obtain the final state $𝐮$ we require implementation of unitary gates for reflection 
-        
+To obtain the final state $𝐮$ we require implementation of unitary operators for reflection, QFT, and polynomial encoding
+
+        # reflection unitary
+        qr = QuantumReflection(n_state_qubits, 1, method_u_f=method_u_f)
+        qr_gate = qr.build()
+
+        # qft
+        qft = QFT(num_qubits=n_state_qubits_ext,inverse=False).to_gate()
+
+        # piecewise polynomial approximation
+        degree      = 3       
+        breakpoints = [1, degree+1, 2*degree+1, 3*degree+1, 5*degree+1, 8*degree+1,  n_pts] 
+        poly_coeffs = polynomials(twoTheta, degree, breakpoints)
+        pw_approximation = PiecewisePolynomialPauliRotationsGate(n_state_qubits, breakpoints, poly_coeffs)
+
+We can now append these unitary operators into the circuit following the classical algorithm
+
+        qc.append(qr_gate, list(range(n_state_qubits_ext)))            # reflection
+        qc.append(qft, list(range(n_state_qubits_ext)))                # QFT
+        qc.append(qr_inv_gate, list(range(n_state_qubits_ext)))        # conj. transpose of reflection
+
+        qc.append(pw_approximation, list(range(n_state_qubits+2)))     # solver in Fourier space
+
+        qc.append(qr_gate, list(range(n_state_qubits_ext)))            
+        qc.append(qft.inverse(), list(range(n_state_qubits_ext))) 
+        qc.append(qr_inv_gate, list(range(n_state_qubits_ext))) 
+
+The quantum state evolution through the unitaries can be performed as
+
+        state = Statevector.from_label('0' * qc.num_qubits)
+        state = state.evolve(qc)
+
+Extract the result from the state and re-normalise to obtain the quantum spectral approximation of the solution 𝐮
+
+        out    = np.array(state.data[0:n_pts])
+        result = np.real(norm_f*out)
+
 ---
 
 ## Citation
@@ -131,6 +165,3 @@ If you use this repository in academic work, please cite:
 
 ---
 
-## Contact
-
-Please open a GitHub issue for questions, bug reports, or feature requests.
