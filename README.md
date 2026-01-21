@@ -45,7 +45,7 @@ f(x) & \text{if } x \in (0, 1), \\
 \end{cases}
 $$
 
-The source field values at are collocaated at the grid points $x_k = \frac{2 k}{N}, \quad k = 0, 1, \dotsc, N-1$, and are collected into the antisymmetrically extended vector
+The source field values at are collocated at the grid points $x_k = \frac{2 k}{N}, \quad k = 0, 1, \dotsc, N-1$, and are collected into the antisymmetrically extended vector
 
 $$
 𝐟_{\mathrm{E}} =
