@@ -39,7 +39,7 @@ We extend the physical fields, $f(x)$ and $u(x)$, to the domain $\Omega_{\mathrm
 $$
 f_{\mathrm{E}}(x) =
 \begin{cases}
-0  & \text{if } x = 0,\, 1,\, 21, \\
+0  & \text{if } x = 0, 1, 2, \\
 f(x) & \text{if } x \in (0, 1), \\
 -f(2-x) & \text{if } x \in (1, 2).
 \end{cases}
@@ -116,7 +116,7 @@ The input state, which is the (normalised) discretised force vector 𝐟, can be
 To obtain the final state $𝐮$ we require implementation of unitary operators for reflection, QFT, and polynomial encoding
 
         # reflection unitary
-        qr = QuantumReflection(n_state_qubits, 1, method_u_f=method_u_f)
+        qr = QuantumReflection(n_state_qubits, 1)
         qr_gate = qr.build()
 
         # qft
