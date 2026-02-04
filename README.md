@@ -1,6 +1,6 @@
 # Quantum Spectral Method (QSM) for non-periodic boundary value problems
 
-A reproducible Python/Qiskit implementation for the examples shown in [E. Febrianto et al. (2025)](https://arxiv.org/abs/2511.11494). 
+A reproducible Python/Qiskit implementation of the examples in [A Quantum Spectral Method for Non-Periodic Boundary Value Problems, E. Febrianto, Y. Wang, B. Liu, M. Ortiz and F. Cirak (2025)](https://arxiv.org/abs/2511.11494). 
 
 ---
 
